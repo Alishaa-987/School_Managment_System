@@ -54,18 +54,8 @@ export async function GET(request: NextRequest) {
     // console.log('API: Found announcements:', announcements.length, announcements.map(a => ({title: a.title, date: a.date})));
 
     return NextResponse.json(announcements);
-  } catch (error: any) {
+  } catch (error) {
     console.error('API Error:', error);
-
-    // Handle specific error types
-    if (error.code === 'P1001') {
-      return NextResponse.json({ error: 'Database connection failed. Please try again later.' }, { status: 500 });
-    }
-
-    if (error.code === 'P2028') {
-      return NextResponse.json({ error: 'Query timeout. Please try again.' }, { status: 500 });
-    }
-
-    return NextResponse.json({ error: 'Failed to fetch announcements. Please try again.' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch announcements' }, { status: 500 });
   }
 }

@@ -51,8 +51,7 @@ const ParentForm = ({
     {
       success: false,
       error: false,
-      message: undefined,
-    } as { success: boolean; error: boolean; message?: string }
+    }
   );
 
   const router = useRouter();
@@ -64,9 +63,8 @@ const ParentForm = ({
       );
       setOpen(false);
       router.refresh();
-    } else if ((state as any).error) {
-      const errorMessage = (state as any).message || "Something went wrong!";
-      toast.error(errorMessage);
+    } else if (state.error) {
+      toast.error("Something went wrong!");
     }
   }, [state.success, state.error, type, router, setOpen]);
 

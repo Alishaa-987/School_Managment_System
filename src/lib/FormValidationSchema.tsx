@@ -128,25 +128,9 @@ export const assignmentSchema = z.object({
   title: z.string().min(1, { message: "Title name is required!" }),
   startDate: z.coerce.date({ message: "Start Date is required!" }),
   dueDate: z.coerce.date({ message: "Due Date is required!" }),
-  subjectId: z.coerce.number().min(1, { message: "Subject is required!" }),
-  classtId: z.coerce.number().min(1, { message: "Class is required!" }),
+  subjectId: z.coerce.number({ message: "Subject is required!" }),
+  classtId: z.coerce.number({ message: "Class is required!" }),
 
 });
 
 export type AssignmentSchema = z.infer<typeof assignmentSchema>;
-
-export const resultSchema = z.object({
-  id: z.coerce.number().optional(),
-  score: z.coerce.number().min(0, { message: "Score must be 0 or greater" }).max(100, { message: "Score cannot exceed 100" }),
-  examId: z.coerce.number().optional(),
-  assignmentId: z.coerce.number().optional(),
-  studentId: z.string().min(1, { message: "Student is required!" }),
-}).refine((data) => data.examId || data.assignmentId, {
-  message: "Either exam or assignment must be selected",
-  path: ["examId"],
-}).refine((data) => !(data.examId && data.assignmentId), {
-  message: "Cannot select both exam and assignment",
-  path: ["examId"],
-});
-
-export type ResultSchema = z.infer<typeof resultSchema>;

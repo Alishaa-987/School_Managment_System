@@ -27,7 +27,6 @@ import {
   deleteAnnouncement,
 } from "@/lib/actions";
 import { FormContainerProps } from "./forms/FormContainer";
-import ErrorDisplay from "./ErrorDisplay";
 
 const deleteActionMap = {
   subject: deleteSubject,
@@ -178,8 +177,7 @@ const FormModel = ({
     const [state, formAction] = useActionState(deleteActionMap[table], {
       success: false,
       error: false,
-      message: undefined,
-    } as { success: boolean; error: boolean; message?: string });
+    });
 
     const router = useRouter();
 
@@ -188,9 +186,8 @@ const FormModel = ({
         toast(`${table} has been deleted!`);
         setOpen(false);
         router.refresh();
-      } else if ((state as any).error) {
-        const errorMessage = (state as any).message || `Failed to delete ${table}. Please try again.`;
-        toast.error(errorMessage);
+      } else if (state.error) {
+        toast.error(`Failed to delete ${table}. Please try again.`);
       }
     }, [state, router]);
 

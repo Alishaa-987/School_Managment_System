@@ -50,8 +50,7 @@ const SubjectForm = ({
     {
       success: false,
       error: false,
-      message: undefined,
-    } as { success: boolean; error: boolean; message?: string }
+    }
   );
 
   const router = useRouter();
@@ -71,9 +70,8 @@ const SubjectForm = ({
       );
       setOpen(false);
       router.refresh();
-    } else if ((state as any).error) {
-      const errorMessage = (state as any).message || "Something went wrong!";
-      toast.error(errorMessage);
+    } else if (state.error) {
+      toast.error("Something went wrong!");
     }
   }, [state.success, state.error, type, router, setOpen]);
 
@@ -122,8 +120,8 @@ const SubjectForm = ({
         </div>
       </div>
 
-      {(state as any).error && (state as any).message && (
-        <span className="text-red-500">{(state as any).message}</span>
+      {state.error && (
+        <span className="text-red-500">Something went wrong!</span>
       )}
       <button type="submit" className="bg-blue-400 text-white p-2 rounded-md">
         {type === "create" ? "Create" : "Update"}
