@@ -179,50 +179,75 @@ async function main() {
     });
   }
 
-  // EXAM
-  for (let i = 1; i <= 10; i++) {
+  // EXAM - Create exams for existing lessons
+  const existingLessons = await prisma.lesson.findMany({
+    select: { id: true },
+    take: 10
+  });
+
+  for (let i = 0; i < Math.min(10, existingLessons.length); i++) {
     await prisma.exam.upsert({
-      where: { id: i },
+      where: { id: i + 1 },
       update: {},
       create: {
-        title: `Exam${i}`,
+        title: `Exam${i + 1}`,
         startTime: new Date(new Date().setHours(new Date().getHours() + 1)),
         endTime: new Date(new Date().setHours(new Date().getHours() + 3)),
-        lessonId: (i % 30) + 1,
+        lessonId: existingLessons[i].id,
       },
     });
   }
 
-  // ASSIGNMENT
-  for (let i = 1; i <= 10; i++) {
+  // ASSIGNMENT - Create assignments for existing lessons
+  const assignmentLessons = await prisma.lesson.findMany({
+    select: { id: true, subjectId: true },
+    take: 10
+  });
+
+  for (let i = 0; i < Math.min(10, assignmentLessons.length); i++) {
     await prisma.assignment.upsert({
-      where: { id: i },
+      where: { id: i + 1 },
       update: {},
       create: {
-        title: `Assignment${i}`,
+        title: `Assignment${i + 1}`,
         startDate: new Date(),
         dueDate: new Date(new Date().setDate(new Date().getDate() + 7)),
-        subjectId: (i % 10) + 1,
-        lessonId: (i % 30) + 1,
+        subjectId: assignmentLessons[i].subjectId,
+        lessonId: assignmentLessons[i].id,
       },
     });
   }
 
-  // RESULT
-  for (let i = 1; i <= 10; i++) {
+  // RESULT - Create results for existing exams and assignments
+  const existingExams = await prisma.exam.findMany({
+    select: { id: true },
+    take: 10
+  });
+
+  const existingAssignments = await prisma.assignment.findMany({
+    select: { id: true },
+    take: 10
+  });
+
+  const existingStudents = await prisma.student.findMany({
+    select: { id: true },
+    take: 10
+  });
+
+  for (let i = 0; i < Math.min(10, existingExams.length, existingAssignments.length, existingStudents.length); i++) {
     await prisma.result.upsert({
-      where: { id: i },
+      where: { id: i + 1 },
       update: {},
       create: {
         score: Math.floor(Math.random() * 100) + 1,
-        examId: (i % 10) + 1,
-        assignmentId: (i % 10) + 1,
-        studentId: `student${(i % 50) + 1}`,
+        examId: existingExams[i].id,
+        assignmentId: existingAssignments[i].id,
+        studentId: existingStudents[i].id,
       },
     });
   }
 
-  // ATTENDANCE - Create for current week
+  // ATTENDANCE - Create comprehensive attendance for current week
   const today = new Date();
   let attendanceId = 1;
 
@@ -230,22 +255,39 @@ async function main() {
   const monday = new Date(today);
   monday.setDate(today.getDate() - (today.getDay() === 0 ? 6 : today.getDay() - 1));
 
+  // Get all lessons to create attendance for each lesson
+  const lessons = await prisma.lesson.findMany({
+    select: { id: true, classId: true }
+  });
+
   for (let dayOffset = 0; dayOffset < 5; dayOffset++) { // Mon to Fri
     const attendanceDate = new Date(monday);
     attendanceDate.setDate(monday.getDate() + dayOffset);
 
-    for (let studentNum = 1; studentNum <= 10; studentNum++) {
-      await prisma.attendance.upsert({
-        where: { id: attendanceId },
-        update: {},
-        create: {
-          date: attendanceDate,
-          present: Math.random() > 0.2, // 80% present rate
-          studentId: `student${studentNum}`,
-          lessonId: (studentNum % 10) + 1,
-        },
+    // For each lesson on this day, create attendance for all students in that class
+    for (const lesson of lessons) {
+      // Get students in this class
+      const studentsInClass = await prisma.student.findMany({
+        where: { classId: lesson.classId },
+        select: { id: true }
       });
-      attendanceId++;
+
+      for (const student of studentsInClass) {
+        // Create attendance with varying presence rates
+        const isPresent = Math.random() > 0.15; // 85% present rate
+
+        await prisma.attendance.upsert({
+          where: { id: attendanceId },
+          update: {},
+          create: {
+            date: attendanceDate,
+            present: isPresent,
+            studentId: student.id,
+            lessonId: lesson.id,
+          },
+        });
+        attendanceId++;
+      }
     }
   }
 
@@ -264,17 +306,63 @@ async function main() {
     });
   }
 
-  // ANNOUNCEMENT
-  for (let i = 1; i <= 5; i++) {
+  // ANNOUNCEMENT - Enhanced with more detailed and varied announcements
+  const announcementsData = [
+    {
+      title: "Welcome Back to School!",
+      description: "We hope everyone had a great summer break. Let's make this academic year amazing!",
+      date: new Date(),
+      classId: null, // School-wide announcement
+    },
+    {
+      title: "Parent-Teacher Meeting",
+      description: "PTM scheduled for next Friday at 2:00 PM. All parents are requested to attend.",
+      date: new Date(),
+      classId: 1,
+    },
+    {
+      title: "Science Fair Registration Open",
+      description: "Register your innovative science projects by next week. Prizes for winners!",
+      date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
+      classId: null,
+    },
+    {
+      title: "Mathematics Olympiad",
+      description: "Students interested in Math Olympiad, please contact your math teacher.",
+      date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
+      classId: 2,
+    },
+    {
+      title: "Sports Day Postponed",
+      description: "Due to weather conditions, Sports Day has been postponed to next month.",
+      date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
+      classId: null,
+    },
+    {
+      title: "Library Books Due",
+      description: "All library books must be returned by Friday. Late fees will apply.",
+      date: new Date(),
+      classId: 3,
+    },
+    {
+      title: "New Computer Lab",
+      description: "Exciting news! Our new computer lab is now open for all students.",
+      date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
+      classId: null,
+    },
+    {
+      title: "Class 5A Field Trip",
+      description: "Field trip to the Science Museum next Tuesday. Permission slips due by Monday.",
+      date: new Date(),
+      classId: 5,
+    },
+  ];
+
+  for (let i = 0; i < announcementsData.length; i++) {
     await prisma.announcement.upsert({
-      where: { id: i },
+      where: { id: i + 1 },
       update: {},
-      create: {
-        title: `Announcement${i}`,
-        description: `Description for Announcement${i}`,
-        date: new Date(),
-        classId: (i % 6) + 1,
-      },
+      create: announcementsData[i],
     });
   }
 

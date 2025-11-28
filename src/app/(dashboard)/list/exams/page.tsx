@@ -118,32 +118,59 @@ const ExamListPage = async ({
   }
   const prisma = new PrismaClient();
 
-  const [data, count] = await prisma.$transaction([
-    prisma.exam.findMany({
-      where: query,
-      include: {
-        lesson: {
-          include: {
-            subject: { select: { name: true } },
-            teacher: { select: { name: true, surname: true } },
-            class: { select: { name: true } },
+  let data: any[] = [];
+  let count = 0;
+  let lessonsData: any[] = [];
+
+  try {
+    const result = await prisma.$transaction([
+      prisma.exam.findMany({
+        where: query,
+        include: {
+          lesson: {
+            include: {
+              subject: { select: { name: true } },
+              teacher: { select: { name: true, surname: true } },
+              class: { select: { name: true } },
+            },
           },
         },
-      },
-      take: ITEM_PER_PAGE,
-      skip: ITEM_PER_PAGE * (p - 1),
-    }),
-    prisma.exam.count({ where: query }),
-  ]);
+        take: ITEM_PER_PAGE,
+        skip: ITEM_PER_PAGE * (p - 1),
+      }),
+      prisma.exam.count({ where: query }),
+    ]);
+    data = result[0];
+    count = result[1];
+  } catch (error) {
+    console.error("Error fetching exams:", error);
+    // Return empty data on error
+  }
 
-  // Get lessons for the form
-  const lessonsData = await prisma.lesson.findMany({
-    include: {
-      subject: { select: { name: true } },
-      teacher: { select: { name: true, surname: true } },
-      class: { select: { name: true } },
-    },
-  });
+  // Get lessons for the form (filtered by role)
+  try {
+    const lessonsQuery: any = {
+      include: {
+        subject: { select: { name: true } },
+        teacher: { select: { name: true, surname: true, id: true } },
+        class: { select: { name: true } },
+      },
+    };
+
+    // Filter lessons based on role
+    if (role === "teacher" && currentUserId) {
+      lessonsQuery.where = {
+        teacherId: currentUserId,
+      };
+    }
+    // Admin can see all lessons, no filter needed
+    // If teacher has no userId, show no lessons (they can't create exams)
+
+    lessonsData = await prisma.lesson.findMany(lessonsQuery);
+  } catch (error) {
+    console.error("Error fetching lessons:", error);
+    lessonsData = []; // Return empty array on error
+  }
 
   const renderRow = (item: ExamList) => (
     <tr
