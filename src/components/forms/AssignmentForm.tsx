@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import React, { useEffect } from "react";
+import React, { useEffect, startTransition } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import InputField from "../InputField";
@@ -10,6 +10,7 @@ import { createAssignment, updateAssignment } from "@/lib/actions";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import { useActionState } from "react";
+import ErrorDisplay from "../ErrorDisplay";
 
 type Inputs = z.infer<AssignmentSchema>;
 
@@ -31,8 +32,8 @@ const AssignmentForm = ({
   } = useForm({
     defaultValues: {
       title: data?.title || "",
-      subjectId: data?.subjectId?.toString() || data?.subject?.id?.toString() || "",
-      classtId: data?.classtId?.toString() || data?.class?.id?.toString() || "",
+      subjectId: data?.subjectId?.toString() || "",
+      classtId: data?.lesson?.class?.id?.toString() || "",
       startDate: data?.startDate ? new Date(data.startDate).toISOString().split('T')[0] : "",
       dueDate: data?.dueDate ? new Date(data.dueDate).toISOString().split('T')[0] : "",
     },
@@ -43,21 +44,44 @@ const AssignmentForm = ({
     {
       success: false,
       error: false,
-    }
+      message: undefined,
+    } as { success: boolean; error: boolean; message?: string }
   );
 
   const router = useRouter();
 
+  const onSubmit = handleSubmit((formData) => {
+    console.log("Submitting assignment form data:", formData);
+
+    // Process the data before submission
+    const processedData = {
+      title: formData.title,
+      subjectId: parseInt(formData.subjectId),
+      classtId: formData.classtId ? parseInt(formData.classtId) : 0, // Use 0 as default if not provided
+      startDate: new Date(formData.startDate),
+      dueDate: new Date(formData.dueDate),
+      id: data?.id ? parseInt(data.id.toString()) : undefined, // Get id from component props
+    };
+
+    console.log("Processed assignment data:", processedData);
+    startTransition(() => {
+      formAction(processedData);
+    });
+  });
+
   useEffect(() => {
     if (state.success) {
-      toast(`Assignment has been ${type === "create" ? "created" : "updated"}!`);
+      toast.success(`Assignment has been ${type === "create" ? "created" : "updated"} successfully!`);
       setOpen?.(false);
       router.refresh();
+    } else if ((state as any).error) {
+      const errorMessage = (state as any).message || "Something went wrong!";
+      toast.error(errorMessage);
     }
-  }, [state, router, type, setOpen]);
+  }, [state.success, state.error, type, router, setOpen]);
 
   return (
-    <form className="flex flex-col gap-8" action={formAction}>
+    <form className="flex flex-col gap-8" onSubmit={onSubmit}>
       <h1 className="text-xl font-semibold">
         {type === "create" ? "Create a new assignment" : "Update assignment"}
       </h1>
@@ -122,16 +146,12 @@ const AssignmentForm = ({
           inputProps={{}}
         />
 
-        {/* Hidden ID for Update */}
-        {data && (
-          <input
-            type="hidden"
-            name="id"
-            defaultValue={data?.id}
-          />
-        )}
-   
+        {/* Hidden ID for Update - not needed since we get it from props */}
+
       </div>
+      {(state as any).error && (state as any).message && (
+        <ErrorDisplay message={(state as any).message} />
+      )}
       <button className="bg-blue-400 text-white p-2 rounded-md">
         {type === "create" ? "Create" : "Update"}
       </button>

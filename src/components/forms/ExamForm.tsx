@@ -13,6 +13,7 @@ import InputField from "../InputField";
 import { createExam, updateExam } from "@/lib/actions";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
+import ErrorDisplay from "../ErrorDisplay";
 
 const schema = z.object({
   id: z.string().optional(),
@@ -59,7 +60,8 @@ const ExamForm = ({
     {
       success: false,
       error: false,
-    }
+      message: undefined,
+    } as { success: boolean; error: boolean; message?: string }
   );
 
   const router = useRouter();
@@ -83,8 +85,9 @@ const ExamForm = ({
       );
       setOpen(false);
       router.refresh();
-    } else if (state.error) {
-      toast.error("Something went wrong!");
+    } else if ((state as any).error) {
+      const errorMessage = (state as any).message || "Something went wrong!";
+      toast.error(errorMessage);
     }
   }, [state.success, state.error, type, router, setOpen]);
 
@@ -149,6 +152,9 @@ const ExamForm = ({
           <input type="hidden" {...register("id")} value={data?.id?.toString()} />
         )}
       </div>
+      {(state as any).error && (state as any).message && (
+        <ErrorDisplay message={(state as any).message} />
+      )}
       <button className="bg-blue-400 text-white p-2 rounded-md">
         {type === "create" ? "Create" : "Update"}
       </button>

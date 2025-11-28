@@ -1,13 +1,23 @@
 import { auth } from "@clerk/nextjs/server";
 
 export async function getRole() {
-  const { sessionClaims } = await auth();
-  return (sessionClaims?.metadata as { role?: string })?.role || "admin";
+  try {
+    const { sessionClaims } = await auth();
+    return (sessionClaims?.metadata as { role?: string })?.role || "admin";
+  } catch (error) {
+    console.warn("Auth error in getRole:", error);
+    return "admin"; // Default to admin if auth fails
+  }
 }
 
 export async function getCurrentUserId() {
-  const { userId } = await auth();
-  return userId;
+  try {
+    const { userId } = await auth();
+    return userId;
+  } catch (error) {
+    console.warn("Auth error in getCurrentUserId:", error);
+    return null; // Return null if auth fails
+  }
 }
 
 // For backward compatibility, but these will only work in request context
