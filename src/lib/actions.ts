@@ -1724,6 +1724,179 @@ export const deleteAttendance = async (
   }
 };
 
+export const createEvent = async (
+  currentState: CurrentState,
+  formData: FormData
+) => {
+  try {
+    const title = formData.get("title") as string;
+    const description = formData.get("description") as string;
+    const startTime = formData.get("startTime") as string;
+    const endTime = formData.get("endTime") as string;
+    const classId = formData.get("classId") as string;
+
+    if (!title || !description || !startTime || !endTime) {
+      return { success: false, error: true, message: "Title, description, start time, and end time are required." };
+    }
+
+    // Get current user role and ID
+    const role = await getRole();
+    const currentUserId = await getCurrentUserId();
+
+    // Validate times
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+
+    if (start >= end) {
+      return { success: false, error: true, message: "End time must be after start time." };
+    }
+
+    if (start < new Date()) {
+      return { success: false, error: true, message: "Start time cannot be in the past." };
+    }
+
+    // Validate class if provided
+    let classIdNum: number | null = null;
+    if (classId) {
+      classIdNum = parseInt(classId);
+      const classItem = await prisma.class.findUnique({
+        where: { id: classIdNum }
+      });
+
+      if (!classItem) {
+        return { success: false, error: true, message: "Selected class does not exist." };
+      }
+
+      // Role-based validation: teachers can only create events for their classes
+      if (role === "teacher" && currentUserId) {
+        const teacherClasses = await prisma.lesson.findMany({
+          where: { teacherId: currentUserId },
+          select: { classId: true }
+        });
+        const teacherClassIds = teacherClasses.map(l => l.classId);
+        if (!teacherClassIds.includes(classIdNum)) {
+          return { success: false, error: true, message: "You can only create events for classes you teach." };
+        }
+      }
+    }
+
+    await prisma.event.create({
+      data: {
+        title: title.trim(),
+        description: description.trim(),
+        startTime: start,
+        endTime: end,
+        classId: classIdNum,
+      },
+    });
+
+    console.log("Event created successfully");
+    // revalidatePath("/list/events");
+    return { success: true, error: false };
+  } catch (err: any) {
+    console.error("createEvent error:", err);
+
+    if (err.code === 'P2002') {
+      return { success: false, error: true, message: "An event with this title and time already exists." };
+    }
+
+    return { success: false, error: true, message: getUserFriendlyError(err) };
+  }
+};
+
+export const updateEvent = async (
+  currentState: CurrentState,
+  formData: FormData
+) => {
+  try {
+    const id = formData.get("id") as string;
+    const title = formData.get("title") as string;
+    const description = formData.get("description") as string;
+    const startTime = formData.get("startTime") as string;
+    const endTime = formData.get("endTime") as string;
+    const classId = formData.get("classId") as string;
+
+    if (!id) {
+      return { success: false, error: true, message: "Event ID is required for update." };
+    }
+
+    if (!title || !description || !startTime || !endTime) {
+      return { success: false, error: true, message: "Title, description, start time, and end time are required." };
+    }
+
+    // Check if event exists
+    const existingEvent = await prisma.event.findUnique({
+      where: { id: Number(id) }
+    });
+
+    if (!existingEvent) {
+      return { success: false, error: true, message: "Event not found. The event may have been deleted." };
+    }
+
+    // Get current user role and ID
+    const role = await getRole();
+    const currentUserId = await getCurrentUserId();
+
+    // Validate times
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+
+    if (start >= end) {
+      return { success: false, error: true, message: "End time must be after start time." };
+    }
+
+    // Validate class if provided
+    let classIdNum: number | null = null;
+    if (classId) {
+      classIdNum = parseInt(classId);
+      const classItem = await prisma.class.findUnique({
+        where: { id: classIdNum }
+      });
+
+      if (!classItem) {
+        return { success: false, error: true, message: "Selected class does not exist." };
+      }
+
+      // Role-based validation: teachers can only update events for their classes
+      if (role === "teacher" && currentUserId) {
+        const teacherClasses = await prisma.lesson.findMany({
+          where: { teacherId: currentUserId },
+          select: { classId: true }
+        });
+        const teacherClassIds = teacherClasses.map(l => l.classId);
+        if (!teacherClassIds.includes(classIdNum)) {
+          return { success: false, error: true, message: "You can only update events for classes you teach." };
+        }
+      }
+    }
+
+    await prisma.event.update({
+      where: {
+        id: Number(id),
+      },
+      data: {
+        title: title.trim(),
+        description: description.trim(),
+        startTime: start,
+        endTime: end,
+        classId: classIdNum,
+      },
+    });
+
+    console.log("Event updated successfully");
+    // revalidatePath("/list/events");
+    return { success: true, error: false };
+  } catch (err: any) {
+    console.error("updateEvent error:", err);
+
+    if (err.code === 'P2002') {
+      return { success: false, error: true, message: "An event with this title and time already exists." };
+    }
+
+    return { success: false, error: true, message: getUserFriendlyError(err) };
+  }
+};
+
 export const deleteEvent = async (
   currentState: CurrentState,
   formData: FormData
@@ -1733,16 +1906,32 @@ export const deleteEvent = async (
 
     if (!id) {
       console.error("id is undefined or null");
-      return { success: false, error: true };
+      return { success: false, error: true, message: "Event ID is required for deletion." };
     }
+
+    // Get current user role and ID
+    const role = await getRole();
+    const currentUserId = await getCurrentUserId();
 
     const existingEvent = await prisma.event.findUnique({
       where: { id: Number(id) },
+      include: { class: true }
     });
 
     if (!existingEvent) {
-      console.error("Event not found with id:", id);
-      return { success: false, error: true };
+      return { success: false, error: true, message: "Event not found. The event may have been deleted." };
+    }
+
+    // Role-based validation: teachers can only delete events for their classes
+    if (role === "teacher" && currentUserId && existingEvent.classId) {
+      const teacherClasses = await prisma.lesson.findMany({
+        where: { teacherId: currentUserId },
+        select: { classId: true }
+      });
+      const teacherClassIds = teacherClasses.map(l => l.classId);
+      if (!teacherClassIds.includes(existingEvent.classId)) {
+        return { success: false, error: true, message: "You can only delete events for classes you teach." };
+      }
     }
 
     await prisma.event.delete({
@@ -1754,9 +1943,158 @@ export const deleteEvent = async (
     console.log("Event deleted successfully");
     // revalidatePath("/list/events");
     return { success: true, error: false };
-  } catch (err) {
+  } catch (err: any) {
     console.error("deleteEvent error:", err);
-    return { success: false, error: true };
+    return { success: false, error: true, message: getUserFriendlyError(err) };
+  }
+};
+
+export const createAnnouncement = async (
+  currentState: CurrentState,
+  formData: FormData
+) => {
+  try {
+    const title = formData.get("title") as string;
+    const description = formData.get("description") as string;
+    const date = formData.get("date") as string;
+    const classId = formData.get("classId") as string;
+
+    if (!title || !description || !date) {
+      return { success: false, error: true, message: "Title, description, and date are required." };
+    }
+
+    // Get current user role and ID
+    const role = await getRole();
+    const currentUserId = await getCurrentUserId();
+
+    // Validate class if provided
+    let classIdNum: number | null = null;
+    if (classId) {
+      classIdNum = parseInt(classId);
+      const classItem = await prisma.class.findUnique({
+        where: { id: classIdNum }
+      });
+
+      if (!classItem) {
+        return { success: false, error: true, message: "Selected class does not exist." };
+      }
+
+      // Role-based validation: teachers can only create announcements for their classes
+      if (role === "teacher" && currentUserId) {
+        const teacherClasses = await prisma.lesson.findMany({
+          where: { teacherId: currentUserId },
+          select: { classId: true }
+        });
+        const teacherClassIds = teacherClasses.map(l => l.classId);
+        if (!teacherClassIds.includes(classIdNum)) {
+          return { success: false, error: true, message: "You can only create announcements for classes you teach." };
+        }
+      }
+    }
+
+    await prisma.announcement.create({
+      data: {
+        title: title.trim(),
+        description: description.trim(),
+        date: new Date(date),
+        classId: classIdNum,
+      },
+    });
+
+    console.log("Announcement created successfully");
+    // revalidatePath("/list/announcements");
+    return { success: true, error: false };
+  } catch (err: any) {
+    console.error("createAnnouncement error:", err);
+
+    if (err.code === 'P2002') {
+      return { success: false, error: true, message: "An announcement with this title and date already exists." };
+    }
+
+    return { success: false, error: true, message: getUserFriendlyError(err) };
+  }
+};
+
+export const updateAnnouncement = async (
+  currentState: CurrentState,
+  formData: FormData
+) => {
+  try {
+    const id = formData.get("id") as string;
+    const title = formData.get("title") as string;
+    const description = formData.get("description") as string;
+    const date = formData.get("date") as string;
+    const classId = formData.get("classId") as string;
+
+    if (!id) {
+      return { success: false, error: true, message: "Announcement ID is required for update." };
+    }
+
+    if (!title || !description || !date) {
+      return { success: false, error: true, message: "Title, description, and date are required." };
+    }
+
+    // Check if announcement exists
+    const existingAnnouncement = await prisma.announcement.findUnique({
+      where: { id: Number(id) }
+    });
+
+    if (!existingAnnouncement) {
+      return { success: false, error: true, message: "Announcement not found. The announcement may have been deleted." };
+    }
+
+    // Get current user role and ID
+    const role = await getRole();
+    const currentUserId = await getCurrentUserId();
+
+    // Validate class if provided
+    let classIdNum: number | null = null;
+    if (classId) {
+      classIdNum = parseInt(classId);
+      const classItem = await prisma.class.findUnique({
+        where: { id: classIdNum }
+      });
+
+      if (!classItem) {
+        return { success: false, error: true, message: "Selected class does not exist." };
+      }
+
+      // Role-based validation: teachers can only update announcements for their classes
+      if (role === "teacher" && currentUserId) {
+        const teacherClasses = await prisma.lesson.findMany({
+          where: { teacherId: currentUserId },
+          select: { classId: true }
+        });
+        const teacherClassIds = teacherClasses.map(l => l.classId);
+        if (!teacherClassIds.includes(classIdNum)) {
+          return { success: false, error: true, message: "You can only update announcements for classes you teach." };
+        }
+      }
+    }
+
+    await prisma.announcement.update({
+      where: {
+        id: Number(id),
+      },
+      data: {
+        title: title.trim(),
+        description: description.trim(),
+        date: new Date(date),
+        classId: classIdNum,
+      },
+    });
+
+    console.log("Announcement updated successfully");
+    // revalidatePath("/list/announcements");
+    return { success: true, error: false };
+  } catch (err: any) {
+    console.error("updateAnnouncement error:", err);
+
+    if (err.code === 'P2002') {
+      return { success: false, error: true, message: "An announcement with this title and date already exists." };
+    }
+
+    return { success: false, error: true, message: getUserFriendlyError(err) };
   }
 };
 
@@ -1769,16 +2107,32 @@ export const deleteAnnouncement = async (
 
     if (!id) {
       console.error("id is undefined or null");
-      return { success: false, error: true };
+      return { success: false, error: true, message: "Announcement ID is required for deletion." };
     }
+
+    // Get current user role and ID
+    const role = await getRole();
+    const currentUserId = await getCurrentUserId();
 
     const existingAnnouncement = await prisma.announcement.findUnique({
       where: { id: Number(id) },
+      include: { class: true }
     });
 
     if (!existingAnnouncement) {
-      console.error("Announcement not found with id:", id);
-      return { success: false, error: true };
+      return { success: false, error: true, message: "Announcement not found. The announcement may have already been deleted." };
+    }
+
+    // Role-based validation: teachers can only delete announcements for their classes
+    if (role === "teacher" && currentUserId && existingAnnouncement.classId) {
+      const teacherClasses = await prisma.lesson.findMany({
+        where: { teacherId: currentUserId },
+        select: { classId: true }
+      });
+      const teacherClassIds = teacherClasses.map(l => l.classId);
+      if (!teacherClassIds.includes(existingAnnouncement.classId)) {
+        return { success: false, error: true, message: "You can only delete announcements for classes you teach." };
+      }
     }
 
     await prisma.announcement.delete({
@@ -1790,9 +2144,9 @@ export const deleteAnnouncement = async (
     console.log("Announcement deleted successfully");
     // revalidatePath("/list/announcements");
     return { success: true, error: false };
-  } catch (err) {
+  } catch (err: any) {
     console.error("deleteAnnouncement error:", err);
-    return { success: false, error: true };
+    return { success: false, error: true, message: getUserFriendlyError(err) };
   }
 };
 

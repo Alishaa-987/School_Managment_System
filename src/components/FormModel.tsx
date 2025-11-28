@@ -151,9 +151,9 @@ const forms: {
   attendance: (setOpen, type, data) => (
     <AttendanceForm type={type} data={data} />
   ),
-  event: (setOpen, type, data) => <EventForm type={type} data={data} />,
-  announcement: (setOpen, type, data) => (
-    <AnnouncementForm type={type} data={data} />
+  event: (setOpen, type, data, relatedData) => <EventForm type={type} data={data} setOpen={setOpen} relatedData={relatedData} />,
+  announcement: (setOpen, type, data, relatedData) => (
+    <AnnouncementForm type={type} data={data} setOpen={setOpen} relatedData={relatedData} />
   ),
 };
 const FormModel = ({
