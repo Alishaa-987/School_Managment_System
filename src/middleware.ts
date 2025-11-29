@@ -26,36 +26,43 @@ export default clerkMiddleware(async (auth, req) => {
       // Import prisma here to avoid issues
       const { prisma } = await import('./lib/prisma');
 
-      // Check each table to find the user
-      const admin = await prisma.admin.findUnique({ where: { id: userId } });
+      // Check all tables in parallel
+      const [admin, teacher, student, parent] = await Promise.all([
+        prisma.admin.findUnique({ where: { id: userId } }).catch(() => null),
+        prisma.teacher.findUnique({ where: { id: userId } }).catch(() => null),
+        prisma.student.findUnique({ where: { id: userId } }).catch(() => null),
+        prisma.parent.findUnique({ where: { id: userId } }).catch(() => null),
+      ]);
+
       if (admin) role = 'admin';
-      else {
-        const teacher = await prisma.teacher.findUnique({ where: { id: userId } });
-        if (teacher) role = 'teacher';
-        else {
-          const student = await prisma.student.findUnique({ where: { id: userId } });
-          if (student) role = 'student';
-          else {
-            const parent = await prisma.parent.findUnique({ where: { id: userId } });
-            if (parent) role = 'parent';
-            else role = 'admin'; // Default fallback
-          }
-        }
-      }
+      else if (teacher) role = 'teacher';
+      else if (student) role = 'student';
+      else if (parent) role = 'parent'; // Role name
+      else role = 'admin'; // Default fallback
     } catch (error) {
       console.error('Database error in middleware:', error);
       role = 'admin'; // Default fallback on DB error
     }
   }
 
+  // Map role to route
+  const roleToRoute = {
+    admin: '/admin',
+    teacher: '/teacher',
+    student: '/student',
+    parent: '/parents' // Parent role maps to /parents route
+  };
+
+  const route = roleToRoute[role as keyof typeof roleToRoute] || '/admin';
+
   // If user is signed in and on home page, redirect to their dashboard
   if (userId && req.nextUrl.pathname === '/') {
-    return NextResponse.redirect(new URL(`/${role}`, req.url));
+    return NextResponse.redirect(new URL(route, req.url));
   }
 
   for (const { matcher, allowedRoles } of matchers) {
     if (matcher(req) && !allowedRoles.includes(role!)) {
-      return NextResponse.redirect(new URL(`/${role}`, req.url));
+      return NextResponse.redirect(new URL(route, req.url));
     }
   }
 });

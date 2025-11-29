@@ -11,6 +11,9 @@ const LoginPage = () => {
       <div className="absolute top-10 left-10 w-40 h-40 bg-teal-300 rounded-full blur-3xl opacity-50 animate-pulse" />
       <div className="absolute bottom-10 right-10 w-48 h-48 bg-yellow-100 rounded-full blur-3xl opacity-70 animate-pulse delay-200" />
 
+      {/* CAPTCHA container for Clerk */}
+      <div id="clerk-captcha"></div>
+
       {/* Card */}
       <SignIn.Root>
         <SignIn.Step
@@ -63,12 +66,7 @@ const LoginPage = () => {
 
           {/* Footer */}
           <div className="text-center text-sm text-blue-500">
-            <p>
-              Don't have an account?{" "}
-              <Link href="/sign-up" className="text-indigo-600 font-semibold hover:underline">
-                Sign up
-              </Link>
-            </p>
+            <p>Contact administrator for account access</p>
           </div>
         </SignIn.Step>
       </SignIn.Root>
