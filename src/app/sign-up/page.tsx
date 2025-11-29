@@ -41,14 +41,26 @@ const SignUpPage = () => {
             <Clerk.FieldError className="text-xs text-red-400" />
           </Clerk.Field>
 
-          {/* Registration Number Field */}
-          <Clerk.Field name="registrationNumber" className="flex flex-col gap-2">
-            <Clerk.Label className="text-sm font-medium text-teal-500">Registration Number</Clerk.Label>
+          {/* First Name Field */}
+          <Clerk.Field name="firstName" className="flex flex-col gap-2">
+            <Clerk.Label className="text-sm font-medium text-teal-500">First Name</Clerk.Label>
             <Clerk.Input
               type="text"
               required
               className="p-3 rounded-lg border border-blue-200 focus:border-indigo-400 focus:ring-2 focus:ring-teal-100 outline-none transition-all bg-neutral-50"
-              placeholder="Enter registration number"
+              placeholder="Enter your first name"
+            />
+            <Clerk.FieldError className="text-xs text-red-400" />
+          </Clerk.Field>
+
+          {/* Last Name Field */}
+          <Clerk.Field name="lastName" className="flex flex-col gap-2">
+            <Clerk.Label className="text-sm font-medium text-teal-500">Last Name</Clerk.Label>
+            <Clerk.Input
+              type="text"
+              required
+              className="p-3 rounded-lg border border-blue-200 focus:border-indigo-400 focus:ring-2 focus:ring-teal-100 outline-none transition-all bg-neutral-50"
+              placeholder="Enter your last name"
             />
             <Clerk.FieldError className="text-xs text-red-400" />
           </Clerk.Field>
@@ -89,7 +101,7 @@ const SignUpPage = () => {
           <div className="text-center text-sm text-blue-500">
             <p>
               Already have an account?{" "}
-              <Link href="/auth/sign-in" className="text-indigo-600 font-semibold hover:underline">
+              <Link href="/sign-in" className="text-indigo-600 font-semibold hover:underline">
                 Sign in
               </Link>
             </p>
