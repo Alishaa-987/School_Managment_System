@@ -1,22 +1,10 @@
 "use client";
 import * as Clerk from "@clerk/elements/common";
 import * as SignIn from "@clerk/elements/sign-in";
-import { useUser } from "@clerk/nextjs";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import Link from "next/link";
 
 const LoginPage = () => {
-  const { user } = useUser();
-  const router = useRouter();
-
-  useEffect(() => {
-    const role = user?.publicMetadata.role;
-    if (role) {
-      router.push(`/${role}`);
-    }
-  }, [user, router]);
-
   return (
     <div className="h-screen w-screen flex items-center justify-center bg-gradient-to-br from-teal-100 via-blue-100 to-indigo-200 relative overflow-hidden">
       {/* Decorative blobs */}
@@ -34,7 +22,7 @@ const LoginPage = () => {
             <div className="w-16 h-16 flex items-center justify-center rounded-full bg-gradient-to-tr from-yellow-100 via-teal-100 to-blue-100 shadow-md ring-4 ring-blue-200">
               <Image src="/logo.png" alt="Logo" width={32} height={32} />
             </div>
-            <h1 className="text-3xl font-extrabold text-indigo-300 tracking-tight">SchooHub</h1>
+            <h1 className="text-3xl font-extrabold text-indigo-300 tracking-tight">SchoolHub</h1>
             <p className="text-emerald-700 text-sm">Welcome back! Please sign in</p>
           </div>
 
@@ -76,10 +64,10 @@ const LoginPage = () => {
           {/* Footer */}
           <div className="text-center text-sm text-blue-500">
             <p>
-              Don’t have an account?{" "}
-              <a href="/sign-up" className="text-indigo-600 font-semibold hover:underline">
+              Don't have an account?{" "}
+              <Link href="/auth/sign-up" className="text-indigo-600 font-semibold hover:underline">
                 Sign up
-              </a>
+              </Link>
             </p>
           </div>
         </SignIn.Step>

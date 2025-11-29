@@ -36,9 +36,9 @@ export default function LandingPage() {
               <Link href="/auth/sign-in" className="bg-gradient-to-r from-lamaSky to-lamaPurple text-white px-8 py-3 rounded-xl text-sm font-semibold hover:shadow-lg hover:scale-105 transition-all duration-200 shadow-md">
                 Sign In
               </Link>
-              {/* <Link href="/admin" className="bg-gradient-to-r from-lamaSky to-lamaPurple text-white px-6 py-3 rounded-xl text-sm font-semibold hover:shadow-lg hover:scale-105 transition-all duration-200 shadow-md">
-                Get Started
-              </Link> */}
+              <Link href="/auth/sign-up" className="border-2 border-lamaSky text-lamaSky px-8 py-3 rounded-xl text-sm font-semibold hover:bg-lamaSky hover:text-white transition-all duration-200 shadow-md">
+                Sign Up
+              </Link>
             </div>
           </div>
         </div>
