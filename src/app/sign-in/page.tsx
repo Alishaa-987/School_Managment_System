@@ -14,6 +14,8 @@ const LoginPage = () => {
       {/* CAPTCHA container for Clerk */}
       <div id="clerk-captcha"></div>
 
+
+
       {/* Card */}
       <SignIn.Root>
         <SignIn.Step
